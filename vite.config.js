@@ -21,8 +21,7 @@ export default defineConfig({
     strictPort: true,
     host: true,
     allowedHosts: [
-      "sevikofe-938071808488.asia-southeast2.run.app",
-      "sevikofe-vmg5pljvnq-et.a.run.app",
+      "frontend-task7-karten-938071808488.europe-west1.run.app",
     ],
   },
 });
