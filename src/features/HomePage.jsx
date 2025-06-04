@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { FaTrash, FaPencilAlt } from "react-icons/fa";
 import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
+import { getAxiosInstance } from "../controller/axiosInstance";
+import { jwtDecode } from "jwt-decode";
+
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 const HomePage = () => {
+	const navigate = useNavigate();
 	const [notes, setNotes] = useState([]);
 	const [error, setError] = useState("");
 
@@ -17,7 +22,18 @@ const HomePage = () => {
 	const [viewing, setViewing] = useState(false);
 	const [viewID, setViewID] = useState(0);
 
-	const navigate = useNavigate();
+	const [expire, setExpire] = useState("");
+	const [token, setToken] = useState(localStorage.getItem("token") || "");
+
+	const [loading, setLoading] = useState(false);
+
+	const axiosInstance = getAxiosInstance({
+		expire,
+		setExpire,
+		setToken,
+		navigate,
+		BASE_URL,
+	});
 
 	useEffect(() => {
 		const token = localStorage.getItem("token");
@@ -28,29 +44,25 @@ const HomePage = () => {
 		fetchNote();
 	}, []);
 
-	// const fetchNote = async () => {
-	// 	const response = await fetch("http://localhost:4200/notes");
-	// 	const data = await response.json();
-	// 	setNotes(data);
-	// 	console.log(data);
-	// };
-
 	const fetchNote = async () => {
+		setLoading(true);
 		try {
+			console.log("test");
 			const token = localStorage.getItem("token");
 			const response = await axiosInstance.get(`${BASE_URL}/notes`, {
 				withCredentials: true,
 				headers: { Authorization: `Bearer ${token}` },
 			});
-			// The original fetch system expected an array of notes
-			// and setNotes(data) where data is the array
-			// Here, adapt to match that:
+
 			const data = response.data;
-			// If your backend returns { notes: [...] }, use data.notes
+
 			setNotes(data.notes || []);
 			setError("");
+			console.log("testw");
+			console.log(data);
 		} catch (err) {
-			// Redirect to /login if error is any 4xx
+			console.log("err");
+
 			if (err?.response?.status >= 400 && err?.response?.status < 500) {
 				navigate("/login");
 			} else if (err?.response?.data?.message) {
@@ -60,25 +72,13 @@ const HomePage = () => {
 			} else {
 				setError("Failed to load notes. Please try again.");
 			}
+		} finally {
+			setLoading(false);
 		}
 	};
 
-	// const createNote = async () => {
-	// 	const response = await fetch("http://localhost:4200/add-note", {
-	// 		method: "POST",
-	// 		headers: { "Content-Type": "application/json" },
-	// 		body: JSON.stringify({
-	// 			title: title,
-	// 			content: content,
-	// 		}),
-	// 	});
-	// 	const data = await response.json();
-	// 	console.log(data);
-	// 	fetchNote();
-	// };
-
 	const createNote = async () => {
-		// Ambil token terbaru dari localStorage
+		setLoading(true);
 		const currentToken = localStorage.getItem("token");
 		let decodedId = "";
 		if (currentToken) {
@@ -86,12 +86,15 @@ const HomePage = () => {
 				const decoded = jwtDecode(currentToken);
 				decodedId = decoded.id;
 			} catch (e) {
+				localStorage.removeItem("token");
 				setError("Token invalid. Please login again.");
+				setLoading(false);
 				return;
 			}
 		}
 		if (!decodedId) {
 			setError("User ID not found. Please try again.");
+			setLoading(false);
 			return;
 		}
 		const data = {
@@ -100,17 +103,17 @@ const HomePage = () => {
 			userId: decodedId,
 		};
 		try {
-			await axiosInstance.post(`${BASE_URL}/add-note`, data, {
+			await axiosInstance.post(`${BASE_URL}/note`, data, {
 				withCredentials: true,
 				headers: { Authorization: `Bearer ${currentToken}` },
 			});
-			navigate("/");
+			await fetchNote();
 		} catch (error) {
-			// Redirect to /login if error is any 4xx
 			if (
 				error?.response?.status >= 400 &&
 				error?.response?.status < 500
 			) {
+				localStorage.removeItem("token");
 				navigate("/login");
 			} else {
 				setError(
@@ -118,30 +121,19 @@ const HomePage = () => {
 						(error?.response?.data?.message || error.message)
 				);
 			}
+		} finally {
+			setLoading(false);
 		}
 	};
 
-	// const updateNote = async (id) => {
-	// 	const response = await fetch("http://localhost:4200/edit-note/" + id, {
-	// 		method: "PUT",
-	// 		headers: { "Content-Type": "application/json" },
-	// 		body: JSON.stringify({
-	// 			title: title,
-	// 			content: content,
-	// 		}),
-	// 	});
-	// 	fetchNote();
-	// 	setUpdatingNote(false);
-	// };
-
-	const updateNote = async () => {
+	const updateNote = async (id) => {
+		setLoading(true);
 		const data = {
 			id: id,
 			title: title,
 			content: content,
 		};
 		try {
-			//   document.getElementById(id).innerText = title;
 			const response = await axiosInstance.patch(
 				`${BASE_URL}/note/${id}`,
 				data,
@@ -150,34 +142,34 @@ const HomePage = () => {
 					headers: { Authorization: `Bearer ${token}` },
 				}
 			);
+			await fetchNote();
+			setUpdatingNote(false);
 			return response.data;
 		} catch (error) {
 			alert(
 				"Failed to update note: " +
 					(error?.response?.data?.message || error.message)
 			);
+		} finally {
+			setLoading(false);
 		}
 	};
 
-	// const deleteNote = async (id) => {
-	// 	await fetch("http://localhost:4200/delete-note/" + id, {
-	// 		method: "DELETE",
-	// 	});
-	// 	fetchNote();
-	// };
-
-	const deleteNote = async () => {
+	const deleteNote = async (id) => {
+		setLoading(true);
 		try {
 			await axiosInstance.delete(`${BASE_URL}/note/${id}`, {
 				withCredentials: true,
 				headers: { Authorization: `Bearer ${token}` },
 			});
-			navigate("/");
+			await fetchNote();
 		} catch (error) {
 			alert(
 				"Failed to delete note: " +
 					(error?.response?.data?.message || error.message)
 			);
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -191,7 +183,10 @@ const HomePage = () => {
 
 	return (
 		<div className="bg-gray-900 text-white min-h-screen flex">
-			<div className="bg-gray-800 flex flex-col align-center p-3">
+			<div
+				className="bg-gray-800 flex flex-col align-center p-3 relative min-h-screen"
+				style={{ minWidth: "220px" }}
+			>
 				<p
 					className="p-4 mb-3 text-3xl cursor-pointer"
 					onClick={() => {
@@ -250,9 +245,35 @@ const HomePage = () => {
 				>
 					+
 				</button>
+
+				<button
+					className="absolute left-0 bottom-0 m-4 w-[calc(100%-32px)] bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-md font-semibold shadow-lg"
+					onClick={() => {
+						localStorage.removeItem("token");
+						navigate("/login");
+					}}
+				>
+					Logout
+				</button>
 			</div>
 			<div className="grow">
-				{creatingNote && (
+				{loading && (
+					<div className="flex flex-col items-center justify-center h-screen">
+						<div className="relative flex items-center justify-center mb-6">
+							<div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-[var(--color-accent)] border-opacity-60"></div>
+							<span className="absolute text-3xl font-bold text-[var(--color-accent)]">
+								⏳
+							</span>
+						</div>
+						<p className="text-2xl font-semibold text-[var(--color-accent)] mb-2">
+							Loading...
+						</p>
+						<p className="text-base text-[var(--color-text)] opacity-70">
+							Please wait while we fetch your notes.
+						</p>
+					</div>
+				)}
+				{!loading && creatingNote && !error && (
 					<div className="flex flex-col gap-5 h-screen p-20">
 						<p className="text-5xl pb-3 text-center font-extrabold">
 							Create New Note
@@ -283,7 +304,7 @@ const HomePage = () => {
 						</button>
 					</div>
 				)}
-				{viewing && (
+				{!loading && viewing && !error && (
 					<div className="p-20 flex flex-col h-full">
 						{notes.map((note) => {
 							if (note.id == viewID) {
@@ -324,7 +345,7 @@ const HomePage = () => {
 						})}
 					</div>
 				)}
-				{updatingNote && (
+				{!loading && updatingNote && !error && (
 					<div className="flex flex-col gap-5 h-screen p-20">
 						<p className="text-5xl pb-3 text-center font-extrabold">
 							Updating Note
@@ -355,19 +376,37 @@ const HomePage = () => {
 						</button>
 					</div>
 				)}
-				{!viewing && !creatingNote && !updatingNote && (
+				{!loading &&
+					!viewing &&
+					!creatingNote &&
+					!updatingNote &&
+					!error && (
+						<div className="grid place-items-center h-screen">
+							<div className="text-center">
+								<p className="text-5xl pb-3 font-extrabold">
+									Nothing here yet
+								</p>
+								<p>
+									You can view, update, or create new notes by
+									the bar on the left
+								</p>
+								<p>
+									Ps: This notes partially support markdown,
+									try to use * or #
+								</p>
+							</div>
+						</div>
+					)}
+				{!loading && error && (
 					<div className="grid place-items-center h-screen">
 						<div className="text-center">
-							<p className="text-5xl pb-3 font-extrabold">
-								Nothing here yet
+							<p className="text-5xl pb-3 font-extrabold text-red-400">
+								Error
 							</p>
+							<p className="mb-4 text-red-300">{error}</p>
 							<p>
-								You can view, update, or create new notes by the
-								bar on the left
-							</p>
-							<p>
-								Ps: This notes partially support markdown, try
-								to use * or #
+								Please try again or contact support if the
+								problem persists.
 							</p>
 						</div>
 					</div>
