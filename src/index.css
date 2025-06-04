@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+@import "tailwindcss";
+
+@theme {
+    --color-primary: #1b1d36;
+    --color-text: #99d6ea;
+    --color-secondary: #17182c;
+    --color-tertiary: #272a4e;
+    --color-accent: #fca6d1;
+}
+
+* {
+    font-family: "Montserrat", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-style: normal;
+}
+
+button {
+    cursor: pointer;
+}
+
+body {
+    background-color: var(--color-primary);
+}
+
+.md-container h1 {
+    font-size: 2.5rem;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+}
+
+.md-container h2 {
+    font-size: 2rem;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+}
+
+.md-container h3 {
+    font-size: 1.75rem;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+}
+
+.md-container h4 {
+    font-size: 1.5rem;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+}
+
+.md-container h5 {
+    font-size: 1.25rem;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+}
+
+.md-container h6 {
+    font-size: 1rem;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+}
+
+.md-container p {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--color-text);
+}
+
+.md-container span {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--color-text);
+}
+
+.md-container em {
+    font-style: italic;
+    font-weight: 400;
+}
+
+.md-container strong {
+    font-weight: 700;
+}
+
+.md-container ol {
+    margin-bottom: 0.5rem;
+}
+
+.md-container li {
+    list-style-type: decimal;
+    margin-left: 2.5rem;
+    font-weight: 400;
+}
+
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-tertiary);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--color-primary);
+    border-radius: 10px;
+    border: 3px solid var(--color-tertiary);
+}
